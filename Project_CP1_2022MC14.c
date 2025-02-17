@@ -22,30 +22,24 @@ typedef struct
 } Chromosome;
 
 // 1. Function to generate random chromosomes for the initial population
-// Randomly places knights on the chessboard for each chromosome.
 void RandomBoards(Chromosome population[])
 {
-    srand(time(0));
-
-    /*I used variable i to loop through the population size throughout the program
-    and variable j and k for rows and columns respectively*/
     for (int i = 0; i < PopulationSize; i++)
     {
         for (int j = 0; j < boardSize; j++)
         {
             for (int k = 0; k < boardSize; k++)
             { 
-                population[i].knights[j][k] = 0;
+                population[i].knights[j][k] = rand() % 2; // Randomly place knights
             }
         }
     }
 }
 
-// 2. Function to calculate the fitness value of each chromosome in the population
-// Checks for empty spaces in the rows and columns of the chessboard.
+// 2. Function to calculate the fitness value of each chromosome
 void fitnessfunction(Chromosome *chromosome)
 {
-    int attackedSquares[boardSize][boardSize] = {0}; // initialization for attacked squares array
+    int attackedSquares[boardSize][boardSize] = {0};
 
     for (int j = 0; j < boardSize; j++)
     {
@@ -53,26 +47,22 @@ void fitnessfunction(Chromosome *chromosome)
         {
             if (chromosome->knights[j][k])
             {
-                for (int a = -2; a <= 2; a++)
+                int moves[8][2] = {{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2},
+                                   {1, -2},  {1, 2},  {2, -1},  {2, 1}};
+                for (int m = 0; m < 8; m++)
                 {
-                    for (int b = -2; b <= 2; b++)
+                    int newRow = j + moves[m][0];
+                    int newColumn = k + moves[m][1];
+                    if (newRow >= 0 && newRow < boardSize && newColumn >= 0 && newColumn < boardSize)
                     {
-                        int newRow = j + a;    // row which is attacked by the knight
-                        int newColumn = j + b; // column which is attacked by the knight
-
-                        if (newRow >= 0 && newRow < boardSize && newColumn >= 0 && newColumn < boardSize)
-                        {
-                            attackedSquares[newRow][newColumn] = 1; // sqaures attacked by the knight
-                        }
+                        attackedSquares[newRow][newColumn] = 1;
                     }
                 }
             }
         }
     }
 
-    // check if any square is not attacked by the knight
     int fitnessvalue = 0;
-
     for (int j = 0; j < boardSize; j++)
     {
         for (int k = 0; k < boardSize; k++)
@@ -83,25 +73,19 @@ void fitnessfunction(Chromosome *chromosome)
             }
         }
     }
-
     chromosome->fitness = fitnessvalue;
 }
 
-// 3. Function to generate the next generation of chromosomes
-// Sorts chromosomes based on fitness in ascending order.
+// 3. Function to sort the population based on fitness
 void NextGeneration(Chromosome population[])
 {
-    Chromosome temp; // temporary variable
-
     for (int i = 0; i < PopulationSize - 1; i++)
     {
-        for (int j = i + 1; j < PopulationSize - i - 1; j++)
+        for (int j = 0; j < PopulationSize - i - 1; j++)
         {
             if (population[j].fitness > population[j + 1].fitness)
             {
-
-                // swap which has high fitness
-                temp = population[j];
+                Chromosome temp = population[j];
                 population[j] = population[j + 1];
                 population[j + 1] = temp;
             }
@@ -109,26 +93,20 @@ void NextGeneration(Chromosome population[])
     }
 }
 
-// 4. Function to perform crossover between two parent chromosomes to produce two child chromosomes
-// Uses a crossover point and exchanges genes between parents.
+// 4. Function to perform crossover between two parents
 void crossover(Chromosome *parent1, Chromosome *parent2, Chromosome *child1, Chromosome *child2)
 {
-
     for (int j = 0; j < boardSize; j++)
     {
-
         for (int k = 0; k < boardSize; k++)
         {
-            // Check if the current column is outside the crossover point
-            if (j < CrossoverPoint || j >= CrossoverPoint)
+            if (j < CrossoverPoint)
             {
-                // If outside the crossover point, copy genes from parents to children
                 child1->knights[j][k] = parent1->knights[j][k];
                 child2->knights[j][k] = parent2->knights[j][k];
             }
             else
             {
-                // If inside the crossover point, exchange genes between parents for children
                 child1->knights[j][k] = parent2->knights[j][k];
                 child2->knights[j][k] = parent1->knights[j][k];
             }
@@ -136,76 +114,40 @@ void crossover(Chromosome *parent1, Chromosome *parent2, Chromosome *child1, Chr
     }
 }
 
-// 5. Function to generate a random integer in the specified range [min, max]
-// Returns a random integer between min and max.
-int randomInt(int min, int max)
-{
-    return rand() % (max - min + 1) + min;
-}
-
-// 6. Function to perform mutation on a chromosome
-// Randomly toggles the presence of a knight based on a mutation rate.
+// 5. Function to perform mutation on a chromosome
 void mutation(Chromosome *chromosome)
 {
-    float mutationRate = 0.5;
-
+    float mutationRate = 0.01; // Lower mutation rate
     for (int j = 0; j < boardSize; j++)
     {
         for (int k = 0; k < boardSize; k++)
         {
-            float randomnumber = (float)rand() / RAND_MAX; // generate a random number between 0 and 1
-
-            if (randomnumber < mutationRate)
+            if ((float)rand() / RAND_MAX < mutationRate)
             {
-                chromosome->knights[j][k] = !chromosome->knights[j][k];
+                chromosome->knights[j][k] ^= 1; // Toggle the knight
             }
         }
     }
 }
 
-// 7. Function to display the entire population on the screen (for debugging purposes)
-// Prints each chromosome's knight positions and fitness value.
-/*void Display_Population(Chromosome population[])
-{
-    for (int i = 0; i < PopulationSize; i++)
-    {
-        for (int j = 0; j < boardSize; j++)
-        {
-            for (int k = 0; k < boardSize; k++)
-            {
-                printf("%d", population[i].knights[j][k]);
-            }
-        }
-        printf("\t%d", population[i].fitness);
-        printf("\n");
-    }
-    printf("\n");
-}*/
-
-// 8. Function to print the chessboard representing a solution
-// Prints the chessboard with knights represented by 'O' and empty spaces by 'X'.
+// 6. Function to print the chessboard
 void printBoard(Chromosome *chromosome)
 {
-    printf("   1  2  3  4  5  6  7  8\n");
+    printf("  ");
+    for (int k = 0; k < boardSize; k++)
+        printf("%2d ", k + 1);
+    printf("\n");
 
     for (int j = 0; j < boardSize; j++)
     {
-        printf("%d |", j + 1);
+        printf("%2d|", j + 1);
         for (int k = 0; k < boardSize; k++)
         {
-            if (chromosome->knights[j][k])
-            {
-                printf("O||");
-            }
-            else
-            {
-                printf("X||");
-            }
+            printf("%s ", chromosome->knights[j][k] ? "O" : "X");
         }
         printf("\n");
     }
 }
-#include <stdio.h>
 
 int main()
 {
@@ -219,16 +161,14 @@ int main()
     int generation;
     for (generation = 0; generation < maxGenerations; generation++)
     {
-        // Calculate fitness for each chromosome in the population
+        // Calculate fitness
         for (int i = 0; i < PopulationSize; i++)
-        {
             fitnessfunction(&population[i]);
-        }
 
-        // Sort the population based on fitness
+        // Sort population by fitness
         NextGeneration(population);
 
-        // Crossover and mutation to create the next generation
+        // Generate offspring
         for (int i = 0; i < PopulationSize; i += 2)
         {
             crossover(&population[i], &population[i + 1], &offspring[i], &offspring[i + 1]);
@@ -236,26 +176,21 @@ int main()
             mutation(&offspring[i + 1]);
         }
 
-        // Replace the old population with the new one
+        // Replace old population with offspring
         for (int i = 0; i < PopulationSize; i++)
-        {
             population[i] = offspring[i];
-        }
     }
 
-    // Find the best solution in the final population
-    Chromosome *Solution = &population[0];
+    // Find the best solution
+    Chromosome *bestSolution = &population[0];
     for (int i = 1; i < PopulationSize; i++)
     {
-        if (population[i].fitness < Solution->fitness)
-        {
-            Solution = &population[i];
-        }
+        if (population[i].fitness < bestSolution->fitness)
+            bestSolution = &population[i];
     }
 
-    // Display the best solution
-    printf("Best solution found in generation %d:\n", generation);
-    printBoard(Solution);
+    printf("Best solution found (Fitness: %d):\n", bestSolution->fitness);
+    printBoard(bestSolution);
 
     return 0;
 }
